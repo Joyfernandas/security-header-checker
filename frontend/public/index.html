@@ -22,26 +22,47 @@
     
     <script>
         document.getElementById('scan-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const url = document.getElementById('url-input').value;
-            const resultsDiv = document.getElementById('results');
-            
-            resultsDiv.innerHTML = '<div>Scanning... This may take a moment.</div>';
-            
-            try {
-                const response = await fetch('/api/scan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
-                });
-                
-                const data = await response.json();
-                displayResults(data);
-            } catch (error) {
-                resultsDiv.innerHTML = `<div class="failed">Error: ${error.message}</div>`;
-            }
-        });
-
+  e.preventDefault();
+  const url = document.getElementById('url-input').value;
+  const resultsDiv = document.getElementById('results');
+  
+  resultsDiv.innerHTML = '<div class="loading">Scanning... This may take a moment.</div>';
+  
+  try {
+    const response = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ url })
+    });
+    
+    // First check if response is OK
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // Try to parse as JSON
+    const data = await response.json();
+    
+    // Additional check for JSON structure
+    if (typeof data !== 'object' || data === null) {
+      throw new Error('Invalid response format');
+    }
+    
+    displayResults(data);
+  } catch (error) {
+    console.error('Fetch error:', error);
+    resultsDiv.innerHTML = `
+      <div class="error">
+        <h3>Scan Failed</h3>
+        <p>${error.message}</p>
+        <p>Please check the URL and try again.</p>
+      </div>
+    `;
+  }
+});
         function displayResults(data) {
             const resultsDiv = document.getElementById('results');
             

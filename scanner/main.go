@@ -12,28 +12,33 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: scanner <url>")
-		os.Exit(1)
-	}
+    // Create a response struct
+    type Response struct {
+        Success bool           `json:"success"`
+        Report  SecurityReport `json:"report,omitempty"`
+        Error   string         `json:"error,omitempty"`
+    }
 
-	url := os.Args[1]
-	report := analyzeURL(url)
+    if len(os.Args) < 2 {
+        json.NewEncoder(os.Stdout).Encode(Response{
+            Success: false,
+            Error:   "Usage: scanner <url>",
+        })
+        os.Exit(1)
+    }
 
-	// Output as JSON for GitHub Actions
-	jsonData, err := json.MarshalIndent(report, "", "  ")
-	if err != nil {
-		fmt.Println("Error generating JSON:", err)
-		os.Exit(1)
-	}
+    url := os.Args[1]
+    report := analyzeURL(url)
 
-	// Save to file for GitHub Actions artifact
-	err = os.WriteFile("results.json", jsonData, 0644)
-	if err != nil {
-		fmt.Println("Error writing results file:", err)
-	}
-
-	fmt.Println(string(jsonData))
+    // Ensure we output JSON regardless of outcome
+    if err := json.NewEncoder(os.Stdout).Encode(Response{
+        Success: report.Success,
+        Report:  report,
+        Error:   report.Error,
+    }); err != nil {
+        fmt.Fprintf(os.Stderr, "Error encoding JSON: %v\n", err)
+        os.Exit(1)
+    }
 }
 
 func analyzeURL(url string) models.SecurityReport {

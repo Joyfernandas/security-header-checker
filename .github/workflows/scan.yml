@@ -27,10 +27,9 @@ jobs:
         id: scan
         run: |
           cd scanner
-          OUTPUT=$(./scanner "${{ github.event.inputs.url || github.event.client_payload.url }}")
-          echo "report<<EOF" >> $GITHUB_OUTPUT
-          echo "$OUTPUT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          chmod +x scanner
+          ./scanner "${{ github.event.inputs.url || github.event.client_payload.url }}" > results.json
+          echo "report=$(cat results.json | jq -c '.')" >> $GITHUB_OUTPUT
           
       - name: Upload results
         uses: actions/upload-artifact@v3
