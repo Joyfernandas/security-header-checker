@@ -11,34 +11,51 @@ import (
 	"./models"
 )
 
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+)
+
 func main() {
-    // Create a response struct
-    type Response struct {
-        Success bool           `json:"success"`
-        Report  SecurityReport `json:"report,omitempty"`
-        Error   string         `json:"error,omitempty"`
-    }
+	// Always output JSON, even for errors
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
 
-    if len(os.Args) < 2 {
-        json.NewEncoder(os.Stdout).Encode(Response{
-            Success: false,
-            Error:   "Usage: scanner <url>",
-        })
-        os.Exit(1)
-    }
+	if len(os.Args) < 2 {
+		encoder.Encode(map[string]interface{}{
+			"error":   "URL argument required",
+			"success": false,
+		})
+		os.Exit(1)
+	}
 
-    url := os.Args[1]
-    report := analyzeURL(url)
+	url := os.Args[1]
+	report, err := analyzeURL(url)
+	if err != nil {
+		encoder.Encode(map[string]interface{}{
+			"error":   err.Error(),
+			"success": false,
+			"url":     url,
+		})
+		os.Exit(1)
+	}
 
-    // Ensure we output JSON regardless of outcome
-    if err := json.NewEncoder(os.Stdout).Encode(Response{
-        Success: report.Success,
-        Report:  report,
-        Error:   report.Error,
-    }); err != nil {
-        fmt.Fprintf(os.Stderr, "Error encoding JSON: %v\n", err)
-        os.Exit(1)
-    }
+	encoder.Encode(map[string]interface{}{
+		"success": true,
+		"report":  report,
+	})
+}
+
+func analyzeURL(url string) (interface{}, error) {
+	// Your analysis logic here
+	return map[string]interface{}{
+		"url":    url,
+		"status": "success",
+	}, nil
 }
 
 func analyzeURL(url string) models.SecurityReport {

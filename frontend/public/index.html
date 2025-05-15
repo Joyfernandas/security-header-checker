@@ -26,8 +26,8 @@
   const url = document.getElementById('url-input').value;
   const resultsDiv = document.getElementById('results');
   
-  resultsDiv.innerHTML = '<div class="loading">Scanning... This may take a moment.</div>';
-  
+  resultsDiv.innerHTML = '<div class="loading">Scanning...</div>';
+
   try {
     const response = await fetch('/api/scan', {
       method: 'POST',
@@ -37,26 +37,31 @@
       },
       body: JSON.stringify({ url })
     });
+
+    // First get the response as text
+    const responseText = await response.text();
     
-    // First check if response is OK
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // Try to parse it as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse JSON:', responseText);
+      throw new Error(`Server returned invalid JSON: ${responseText.substring(0, 100)}`);
     }
-    
-    // Try to parse as JSON
-    const data = await response.json();
-    
-    // Additional check for JSON structure
-    if (typeof data !== 'object' || data === null) {
-      throw new Error('Invalid response format');
+
+    // Now handle the parsed data
+    if (!response.ok) {
+      throw new Error(data.error || `Request failed with status ${response.status}`);
     }
     
     displayResults(data);
+    
   } catch (error) {
-    console.error('Fetch error:', error);
+    console.error('Error:', error);
     resultsDiv.innerHTML = `
       <div class="error">
-        <h3>Scan Failed</h3>
+        <h3>Error Occurred</h3>
         <p>${error.message}</p>
         <p>Please check the URL and try again.</p>
       </div>

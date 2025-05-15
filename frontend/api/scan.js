@@ -3,28 +3,38 @@ import { Octokit } from "@octokit/rest";
 export default async function handler(req, res) {
   // Set JSON content type immediately
   res.setHeader('Content-Type', 'application/json');
-  
-  if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      success: false,
-      error: 'Method not allowed' 
-    });
-  }
 
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ 
+        success: false,
+        error: 'Method not allowed' 
+      });
+    }
+
     const { url } = req.body;
     
-    if (!url || !url.startsWith('http')) {
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL is required'
+      });
+    }
+
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch (e) {
       return res.status(400).json({
         success: false,
         error: 'Invalid URL format'
       });
     }
 
+    // Your GitHub API logic here
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-
-    // Trigger workflow
-    await octokit.actions.createWorkflowDispatch({
+    
+    await octokit.rest.actions.createWorkflowDispatch({
       owner: process.env.GITHUB_OWNER,
       repo: process.env.GITHUB_REPO,
       workflow_id: 'scan.yml',
@@ -32,11 +42,10 @@ export default async function handler(req, res) {
       inputs: { url }
     });
 
-    return res.status(202).json({
+    return res.json({
       success: true,
-      status: 'pending',
-      message: 'Scan initiated successfully',
-      url
+      message: 'Scan initiated',
+      url: url
     });
 
   } catch (error) {
