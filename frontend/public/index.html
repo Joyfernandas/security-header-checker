@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Header Checker</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .passed { background-color: #d4edda; }
+        .failed { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>Security Header Checker</h1>
+    <form id="scan-form">
+        <input type="url" id="url-input" placeholder="https://example.com" required>
+        <button type="submit">Scan</button>
+    </form>
+    
+    <div id="results"></div>
+    
+    <script>
+        document.getElementById('scan-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('url-input').value;
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML = '<div>Scanning... This may take a moment.</div>';
+            
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="failed">Error: ${error.message}</div>`;
+            }
+        });
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="failed">${data.error}</div>`;
+                return;
+            }
+            
+            let html = `<h2>Results for ${data.url}</h2>`;
+            html += `<div>Overall Score: ${data.score}/100</div>`;
+            
+            data.checks.forEach(check => {
+                const statusClass = check.passed ? 'passed' : 'failed';
+                html += `
+                <div class="result ${statusClass}">
+                    <h3>${check.name} (${check.severity})</h3>
+                    <p>${check.description}</p>
+                    <p>Status: ${check.passed ? '✅ Passed' : '❌ Failed'}</p>
+                </div>`;
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

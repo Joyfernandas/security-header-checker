@@ -1,0 +1,40 @@
+name: Security Header Scanner
+
+on:
+  repository_dispatch:
+    types: [scan-request]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to scan'
+        required: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.20'
+          
+      - name: Build scanner
+        run: cd scanner && go build -o scanner .
+        
+      - name: Run scan
+        id: scan
+        run: |
+          cd scanner
+          OUTPUT=$(./scanner "${{ github.event.inputs.url || github.event.client_payload.url }}")
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          echo "$OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: scan-results
+          path: |
+            scanner/results.json
