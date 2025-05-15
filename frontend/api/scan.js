@@ -1,7 +1,17 @@
 import { Octokit } from "@octokit/rest";
 
 export default async function handler(req, res) {
-  // Set JSON content type immediately
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Set JSON content type
   res.setHeader('Content-Type', 'application/json');
 
   try {
@@ -31,7 +41,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Your GitHub API logic here
+    // Trigger GitHub Actions
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
     
     await octokit.rest.actions.createWorkflowDispatch({
